@@ -4,12 +4,14 @@ const ctx = canvas.getContext('2d');
 const downloadBtn = document.getElementById('download-btn');
 const placeholderText = document.getElementById('placeholder-text');
 
-// CONFIGURATIONURATION
+// CONFIGURATION
 // You can adjust these numbers to fit your frame perfectly.
-const CIRCLE_CONFIG = {
-    centerX: 2345,    // Move LEFT/RIGHT (Smaller = Left, Larger = Right)
-    centerY: 2600,    // Move UP/DOWN    (Smaller = Up,   Larger = Down)
-    radius: 525       // Size of the photo circle
+const FRAME_CONFIG = {
+    rectX: 548,       // Moved further right (was 505)
+    rectY: 352.2,       // Moved slightly down (was 255)
+    rectW: 374,       // Reduced width (was 525)
+    rectH: 490,        // Reduced height (was 595)
+    borderRadius: 38   // Added rounding for frame style
 };
 
 let frameImage = new Image();
@@ -71,24 +73,29 @@ function drawCanvas() {
     // 2. Draw Frame (Bottom Layer)
     ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
 
-    // 3. Setup Clipping Region (The Circle)
+    // 3. Setup Clipping Region (The Rounded Rectangle)
     ctx.save(); // Save state
     ctx.beginPath();
-    ctx.arc(CIRCLE_CONFIG.centerX, CIRCLE_CONFIG.centerY, CIRCLE_CONFIG.radius, 0, Math.PI * 2, true);
+    if (ctx.roundRect) {
+        // Apply borderRadius only to Top-Left and Top-Right (radii: [TL, TR, BR, BL])
+        ctx.roundRect(FRAME_CONFIG.rectX, FRAME_CONFIG.rectY, FRAME_CONFIG.rectW, FRAME_CONFIG.rectH, [FRAME_CONFIG.borderRadius, FRAME_CONFIG.borderRadius, 0, 0]);
+    } else {
+        // Fallback for older browsers
+        ctx.rect(FRAME_CONFIG.rectX, FRAME_CONFIG.rectY, FRAME_CONFIG.rectW, FRAME_CONFIG.rectH);
+    }
     ctx.closePath();
-    ctx.clip(); // Restrict drawing to this circle
+    ctx.clip(); // Restrict drawing to this rounded rectangular area
 
-    // 4. Draw User Image (Top Layer, clipped to circle)
-    // We want the image to "cover" the circle, meaning the smallest dimension matches the diameter
-    const diameter = CIRCLE_CONFIG.radius * 2;
-    const scale = Math.max(diameter / currentUserImg.width, diameter / currentUserImg.height);
+    // 4. Draw User Image (Top Layer, clipped to rectangle)
+    // We want the image to "cover" the rectangle
+    const scale = Math.max(FRAME_CONFIG.rectW / currentUserImg.width, FRAME_CONFIG.rectH / currentUserImg.height);
 
     const w = currentUserImg.width * scale;
     const h = currentUserImg.height * scale;
 
-    // Center the image within the circle's bounding box
-    const x = CIRCLE_CONFIG.centerX - (w / 2);
-    const y = CIRCLE_CONFIG.centerY - (h / 2);
+    // Center the image within the rectangular area
+    const x = FRAME_CONFIG.rectX + (FRAME_CONFIG.rectW / 2) - (w / 2);
+    const y = FRAME_CONFIG.rectY + (FRAME_CONFIG.rectH / 2) - (h / 2);
 
     ctx.drawImage(currentUserImg, x, y, w, h);
 
@@ -106,3 +113,4 @@ downloadBtn.addEventListener('click', function () {
     link.href = canvas.toDataURL('image/png');
     link.click();
 });
+
